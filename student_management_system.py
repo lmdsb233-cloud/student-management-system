@@ -1,85 +1,57 @@
-import json
-import os
+from student_logic import StudentLogic
 
-DATA_FILE = "students.json"
-
-def load_data():
-    """从 JSON 文件加载学生数据"""
-    if not os.path.exists(DATA_FILE):
-        return {}
-    with open(DATA_FILE, 'r', encoding='utf-8') as f:
-        return json.load(f)
-
-def save_data(data):
-    """将学生数据保存到 JSON 文件"""
-    with open(DATA_FILE, 'w', encoding='utf-8') as f:
-        json.dump(data, f, indent=4, ensure_ascii=False)
-
-def add_student():
-    """添加新学生"""
-    students = load_data()
+def add_student(logic):
+    """处理添加新学生的命令行交互"""
     student_id = input("请输入学生学号: ")
-    if student_id in students:
-        print("错误: 该学号已存在。")
-        return
-
     name = input("请输入学生姓名: ")
     age = input("请输入学生年龄: ")
     major = input("请输入学生专业: ")
+    success, message = logic.add_student(student_id, name, age, major)
+    print(message)
 
-    students[student_id] = {
-        "name": name,
-        "age": age,
-        "major": major
-    }
-    save_data(students)
-    print(f"成功添加学生: {name}")
-
-def delete_student():
-    """根据学号删除学生"""
-    students = load_data()
+def delete_student(logic):
+    """处理删除学生的命令行交互"""
     student_id = input("请输入要删除的学生的学号: ")
-    if student_id not in students:
-        print("错误: 未找到该学生。")
-        return
+    success, message = logic.delete_student(student_id)
+    print(message)
 
-    deleted_student_name = students[student_id]['name']
-    del students[student_id]
-    save_data(students)
-    print(f"成功删除学生: {deleted_student_name}")
-
-def update_student():
-    """修改学生信息"""
-    students = load_data()
+def update_student(logic):
+    """处理修改学生信息的命令行交互"""
     student_id = input("请输入要修改信息的学生的学号: ")
-    if student_id not in students:
+    student = logic.query_student(student_id)
+    if not student:
         print("错误: 未找到该学生。")
         return
 
     print("请输入新的信息 (如果不想修改某项，请直接按回车):")
-    name = input(f"姓名 (当前: {students[student_id]['name']}): ")
-    age = input(f"年龄 (当前: {students[student_id]['age']}): ")
-    major = input(f"专业 (当前: {students[student_id]['major']}): ")
+    name = input(f"姓名 (当前: {student['name']}): ")
+    age = input(f"年龄 (当前: {student['age']}): ")
+    major = input(f"专业 (当前: {student['major']}): ")
 
+    # Create a dictionary with only the provided values
+    update_data = {}
     if name:
-        students[student_id]['name'] = name
+        update_data['name'] = name
     if age:
-        students[student_id]['age'] = age
+        update_data['age'] = age
     if major:
-        students[student_id]['major'] = major
+        update_data['major'] = major
 
-    save_data(students)
-    print("学生信息更新成功。")
+    if not update_data:
+        print("没有输入任何新的信息，操作取消。")
+        return
 
-def query_student():
-    """查询单个学生信息"""
-    students = load_data()
+    success, message = logic.update_student(student_id, **update_data)
+    print(message)
+
+def query_student(logic):
+    """处理查询单个学生信息的命令行交互"""
     student_id = input("请输入要查询的学生的学号: ")
-    if student_id not in students:
+    student = logic.query_student(student_id)
+    if not student:
         print("错误: 未找到该学生。")
         return
 
-    student = students[student_id]
     print("\n--- 学生信息 ---")
     print(f"学号: {student_id}")
     print(f"姓名: {student['name']}")
@@ -87,10 +59,9 @@ def query_student():
     print(f"专业: {student['major']}")
     print("------------------\n")
 
-
-def display_all_students():
-    """显示所有学生信息"""
-    students = load_data()
+def display_all_students(logic):
+    """处理显示所有学生信息的命令行交互"""
+    students = logic.get_all_students()
     if not students:
         print("系统中没有学生信息。")
         return
@@ -102,8 +73,10 @@ def display_all_students():
 
 def main():
     """主菜单"""
+    logic = StudentLogic()
+
     while True:
-        print("\n欢迎使用学生信息管理系统")
+        print("\n欢迎使用学生信息管理系统 (命令行版)")
         print("1. 添加学生")
         print("2. 删除学生")
         print("3. 修改学生信息")
@@ -114,15 +87,15 @@ def main():
         choice = input("请输入您的选择 (1-6): ")
 
         if choice == '1':
-            add_student()
+            add_student(logic)
         elif choice == '2':
-            delete_student()
+            delete_student(logic)
         elif choice == '3':
-            update_student()
+            update_student(logic)
         elif choice == '4':
-            query_student()
+            query_student(logic)
         elif choice == '5':
-            display_all_students()
+            display_all_students(logic)
         elif choice == '6':
             print("感谢使用，再见！")
             break
